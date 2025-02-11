@@ -10,20 +10,24 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 
 	"ethereum-fetcher-go/internal/database"
+	"ethereum-fetcher-go/internal/repository"
 )
 
 type Server struct {
 	port int
 
-	db database.Service
+	db              database.Service
+	transactionRepo repository.TransactionRepository
 }
 
 func NewServer() *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("API_PORT"))
-	NewServer := &Server{
-		port: port,
+	db := database.New()
 
-		db: database.New(),
+	NewServer := &Server{
+		port:            port,
+		db:              db,
+		transactionRepo: repository.NewTransactionRepository(db.DB()),
 	}
 
 	// Declare Server config

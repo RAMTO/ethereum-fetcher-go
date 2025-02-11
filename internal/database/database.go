@@ -24,6 +24,9 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	// DB returns the underlying gorm.DB instance
+	DB() *gorm.DB
 }
 
 type service struct {
@@ -155,4 +158,9 @@ func (s *service) Close() error {
 	}
 	log.Printf("Disconnected from database: %s", database)
 	return sqlDB.Close()
+}
+
+// DB returns the underlying gorm.DB instance
+func (s *service) DB() *gorm.DB {
+	return s.db
 }

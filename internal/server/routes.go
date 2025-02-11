@@ -18,10 +18,20 @@ func (s *Server) RegisterRoutes() http.Handler {
 	}))
 
 	r.GET("/health", s.healthHandler)
+	r.GET("/lime/all", s.getAllTransactionsHandler)
 
 	return r
 }
 
 func (s *Server) healthHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, s.db.Health())
+}
+
+func (s *Server) getAllTransactionsHandler(c *gin.Context) {
+	txs, err := s.transactionRepo.GetAll(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, txs)
 }

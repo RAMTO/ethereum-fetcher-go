@@ -48,6 +48,7 @@ type TransactionRepository interface {
 	Repository
 	Create(ctx context.Context, tx *models.Transaction) error
 	GetByID(ctx context.Context, id int) (*models.Transaction, error)
+	GetAll(ctx context.Context) ([]*models.Transaction, error)
 	GetByHash(ctx context.Context, hash string) (*models.Transaction, error)
 	GetByBlockNumber(ctx context.Context, blockNumber int) ([]*models.Transaction, error)
 	GetByAddress(ctx context.Context, address string) ([]*models.Transaction, error)
