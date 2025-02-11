@@ -83,3 +83,13 @@ func (r *transactionRepository) Update(ctx context.Context, tx *models.Transacti
 func (r *transactionRepository) Delete(ctx context.Context, id int) error {
 	return r.DB.WithContext(ctx).Delete(&models.Transaction{}, id).Error
 }
+
+// GetAll retrieves all transactions
+func (r *transactionRepository) GetAll(ctx context.Context) ([]*models.Transaction, error) {
+	var txs []*models.Transaction
+	err := r.DB.WithContext(ctx).Find(&txs).Error
+	if err != nil {
+		return nil, err
+	}
+	return txs, nil
+}
