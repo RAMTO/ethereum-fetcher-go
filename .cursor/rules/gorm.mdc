@@ -1,0 +1,7 @@
+---
+description: Working with SQL and DB related files
+globs: .go
+---
+# GORM
+
+- When working with DB related files and functionalities always use GORM and avoid writing raw SQL queries all all cost

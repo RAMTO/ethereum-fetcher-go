@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"ethereum-fetcher-go/internal/models"
+
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -76,6 +78,16 @@ func New() Service {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
+	}
+
+	// Run migrations
+	err = db.AutoMigrate(
+		&models.User{},
+		&models.Transaction{},
+	)
+	if err != nil {
+		log.Printf("Failed to auto-migrate database: %v", err)
+		return nil
 	}
 
 	dbInstance = &service{db: db}
