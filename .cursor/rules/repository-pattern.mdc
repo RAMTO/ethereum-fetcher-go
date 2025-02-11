@@ -1,0 +1,7 @@
+---
+description: When working with DB, use the repository pattern
+globs: .go
+---
+# Repository pattern
+
+- When creating services and handlers use the repository pattern [database.go](mdc:ethereum-fetcher-go/internal/database/database.go)
