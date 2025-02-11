@@ -1,0 +1,9 @@
+---
+description: Idiomatic go code
+globs: .go
+---
+
+# Idiomatic go
+
+- Always write idiomatic go following best practices
+- Write as less as possile readable and testable code
