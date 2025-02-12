@@ -182,6 +182,7 @@ func (s *Server) authenticateUserHandler(c *gin.Context) {
 
 	// Generate JWT token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":      existingUser.ID,
 		"username": user.Username,
 		"exp":      time.Now().Add(time.Minute * 15).Unix(),
 	})
@@ -219,13 +220,15 @@ func (s *Server) myUserHandler(c *gin.Context) {
 		return
 	}
 
-	username := claims["username"].(string)
+	userId := claims["sub"].(float64)
 
-	user, err := s.store.userRepo.GetByUsername(c, username)
+	userTransactionIds, err := s.store.userTransactionRepo.GetTransactionsByUserId(c, int(userId))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	fmt.Println("User transaction IDs", userTransactionIds)
+
+	c.JSON(http.StatusOK, userTransactionIds)
 }

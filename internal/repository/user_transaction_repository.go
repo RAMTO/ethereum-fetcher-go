@@ -55,3 +55,9 @@ func (r *userTransactionRepository) GetByTransactionHashAndUserId(ctx context.Co
 
 	return &userTransaction, nil
 }
+
+func (r *userTransactionRepository) GetTransactionsByUserId(ctx context.Context, userID int) ([]*models.UserTransaction, error) {
+	var userTransactions []*models.UserTransaction
+
+	return userTransactions, r.db.WithContext(ctx).Where("user_id = ?", userID).Find(&userTransactions).Error
+}
