@@ -7,11 +7,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -137,6 +139,44 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, transaction)
+}
+
+func (s *Server) fetchTransactionsByRlpHexHandler(c *gin.Context) {
+	param := c.Param("rlphex")
+
+	// Remove "0x" prefix if present
+	if strings.HasPrefix(param, "0x") {
+		param = param[2:]
+	}
+
+	rlpData, err := hex.DecodeString(param)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid RLP hex: " + err.Error()})
+		return
+	}
+
+	// Create a slice to store the raw bytes
+	var rawHashes [][]byte
+
+	// Decode the RLP data directly into the slice
+	if err := rlp.DecodeBytes(rlpData, &rawHashes); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to decode RLP data: " + err.Error()})
+		return
+	}
+
+	// Convert byte slices to hex strings
+	txHashes := make([]string, len(rawHashes))
+	for i, hash := range rawHashes {
+		txHashes[i] = "0x" + hex.EncodeToString(hash)
+	}
+
+	transactions, err := s.store.transactionRepo.GetByHashes(c, txHashes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, transactions)
 }
 
 func (s *Server) registerUserHandler(c *gin.Context) {
