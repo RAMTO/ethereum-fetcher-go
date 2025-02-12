@@ -21,7 +21,7 @@ func (s *Server) healthHandler(c *gin.Context) {
 }
 
 func (s *Server) getAllTransactionsHandler(c *gin.Context) {
-	txs, err := s.transactionRepo.GetAll(c)
+	txs, err := s.store.transactionRepo.GetAll(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -54,7 +54,7 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 
 		username := claims["username"].(string)
 
-		foundUser, err := s.userRepo.GetByUsername(c, username)
+		foundUser, err := s.store.userRepo.GetByUsername(c, username)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -73,7 +73,7 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		return
 	}
 
-	existingTransaction, _ := s.transactionRepo.GetByHash(c, param)
+	existingTransaction, _ := s.store.transactionRepo.GetByHash(c, param)
 
 	if existingTransaction != nil {
 		c.IndentedJSON(http.StatusOK, existingTransaction)
@@ -117,19 +117,19 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		Input:             hex.EncodeToString(tx.Data()),
 	}
 
-	if err := s.transactionRepo.Create(c, transaction); err != nil {
+	if err := s.store.transactionRepo.Create(c, transaction); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	if user != nil {
 		// Check for user transaction association
-		existingUserTransaction, _ := s.userTransactionRepo.GetByTransactionHashAndUserId(c, transaction.TransactionHash, user.ID)
+		existingUserTransaction, _ := s.store.userTransactionRepo.GetByTransactionHashAndUserId(c, transaction.TransactionHash, user.ID)
 
 		fmt.Println("Existing user transaction", existingUserTransaction)
 
 		if existingUserTransaction == nil {
-			if err := s.userTransactionRepo.Create(c, user.ID, transaction.TransactionHash); err != nil {
+			if err := s.store.userTransactionRepo.Create(c, user.ID, transaction.TransactionHash); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
@@ -147,14 +147,14 @@ func (s *Server) registerUserHandler(c *gin.Context) {
 	}
 
 	// Check if user already exists
-	existingUser, _ := s.userRepo.GetByUsername(c, user.Username)
+	existingUser, _ := s.store.userRepo.GetByUsername(c, user.Username)
 	if existingUser != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "User already exists"})
 		return
 	}
 
 	// Create user
-	if err := s.userRepo.Create(c, &user); err != nil {
+	if err := s.store.userRepo.Create(c, &user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -169,7 +169,7 @@ func (s *Server) authenticateUserHandler(c *gin.Context) {
 		return
 	}
 
-	existingUser, _ := s.userRepo.GetByUsername(c, user.Username)
+	existingUser, _ := s.store.userRepo.GetByUsername(c, user.Username)
 	if existingUser == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
@@ -221,7 +221,7 @@ func (s *Server) myUserHandler(c *gin.Context) {
 
 	username := claims["username"].(string)
 
-	user, err := s.userRepo.GetByUsername(c, username)
+	user, err := s.store.userRepo.GetByUsername(c, username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

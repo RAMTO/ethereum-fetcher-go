@@ -13,13 +13,17 @@ import (
 	"ethereum-fetcher-go/internal/repository"
 )
 
-type Server struct {
-	port int
-
-	db                  database.Service
+type Store struct {
 	transactionRepo     repository.TransactionRepository
 	userRepo            repository.UserRepository
 	userTransactionRepo repository.UserTransactionRepository
+}
+
+type Server struct {
+	port int
+
+	db    database.Service
+	store *Store
 }
 
 func NewServer() *http.Server {
@@ -27,11 +31,13 @@ func NewServer() *http.Server {
 	db := database.New()
 
 	NewServer := &Server{
-		port:                port,
-		db:                  db,
-		transactionRepo:     repository.NewTransactionRepository(db.DB()),
-		userRepo:            repository.NewUserRepository(db.DB()),
-		userTransactionRepo: repository.NewUserTransactionRepository(db.DB()),
+		port: port,
+		db:   db,
+		store: &Store{
+			transactionRepo:     repository.NewTransactionRepository(db.DB()),
+			userRepo:            repository.NewUserRepository(db.DB()),
+			userTransactionRepo: repository.NewUserTransactionRepository(db.DB()),
+		},
 	}
 
 	// Declare Server config
