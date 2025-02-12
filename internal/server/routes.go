@@ -19,7 +19,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"}, // Add your frontend URL
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowMethods:     []string{"GET", "POST"},
 		AllowHeaders:     []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true, // Enable cookies/auth
 	}))
@@ -29,6 +29,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.GET("/lime/eth", s.fetchTransactionsHandler)
 	r.POST("/lime/register", s.registerUserHandler)
 	r.POST("/lime/authenticate", s.authenticateUserHandler)
+	r.GET("/lime/my", s.myUserHandler)
 
 	return r
 }
@@ -149,4 +150,39 @@ func (s *Server) authenticateUserHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": tokenString})
+}
+
+func (s *Server) myUserHandler(c *gin.Context) {
+	// Get the token from the request
+	tokenString := c.GetHeader("Authorization")
+	if tokenString == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "No token provided"})
+		return
+	}
+
+	// Validate the token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	// Get the username from the token
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	username := claims["username"].(string)
+
+	user, err := s.userRepo.GetByUsername(c, username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }

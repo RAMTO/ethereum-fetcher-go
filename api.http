@@ -24,3 +24,8 @@ Content-Type: application/json
     "username": "bob",
     "password": "bob"
 }
+
+### GET my user
+GET http://localhost:8080/lime/my
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzkzNTAwMzUsInVzZXJuYW1lIjoiYm9iIn0.GhwLqcnskv6PlqSfHBOcCdRTBz88Fr9yVaT1RMvn-do
