@@ -12,4 +12,5 @@ type Transaction struct {
 	LogsCount         int    `json:"logsCount"`
 	Input             string `json:"input"`
 	Value             int    `json:"value"`
+	Users             []User `json:"users" gorm:"many2many:user_transactions;"`
 }
