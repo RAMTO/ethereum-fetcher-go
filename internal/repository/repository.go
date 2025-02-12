@@ -48,6 +48,7 @@ type TransactionRepository interface {
 	GetByID(ctx context.Context, id int) (*models.Transaction, error)
 	GetAll(ctx context.Context) ([]*models.Transaction, error)
 	GetByHash(ctx context.Context, hash string) (*models.Transaction, error)
+	GetByHashes(ctx context.Context, hashes []string) ([]*models.Transaction, error)
 }
 
 type UserTransactionRepository interface {

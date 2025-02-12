@@ -52,6 +52,15 @@ func (r *transactionRepository) GetByHash(ctx context.Context, hash string) (*mo
 	return &tx, nil
 }
 
+func (r *transactionRepository) GetByHashes(ctx context.Context, hashes []string) ([]*models.Transaction, error) {
+	var txs []*models.Transaction
+	err := r.DB.WithContext(ctx).Where("transaction_hash IN ?", hashes).Find(&txs).Error
+	if err != nil {
+		return nil, err
+	}
+	return txs, nil
+}
+
 // GetAll retrieves all transactions
 func (r *transactionRepository) GetAll(ctx context.Context) ([]*models.Transaction, error) {
 	var txs []*models.Transaction

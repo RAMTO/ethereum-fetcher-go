@@ -5,8 +5,8 @@ GET http://localhost:8080/health
 GET http://localhost:8080/lime/all
 
 ### GET transaction by hash
-GET http://localhost:8080/lime/eth?transactionHashes=0x7a3fc6c42d63050e957a228926bf3d7bf56daaaf98e61f1e926deef0c264c3dc
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzkzNjg3NDksInN1YiI6MiwidXNlcm5hbWUiOiJib2IifQ.7PuV_17mS_K9BN3eBee4qw_5_3Xr3_3W5jwa-r7wIy8
+GET http://localhost:8080/lime/eth?transactionHashes=0x94e3fd4ba2ca4144534840db232f91906050f3b845c51c321f0700e20cd7e42c
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzkzNzE5ODIsInN1YiI6MiwidXNlcm5hbWUiOiJib2IifQ.5Ro1AS5UYaW7Q62uMFTAItSuOOtDCysyXKTuVQTyhOg
 
 ### POST register user
 POST http://localhost:8080/lime/register
@@ -29,4 +29,4 @@ Content-Type: application/json
 ### GET my user
 GET http://localhost:8080/lime/my
 Content-Type: application/json
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzkzNjg3NDksInN1YiI6MiwidXNlcm5hbWUiOiJib2IifQ.7PuV_17mS_K9BN3eBee4qw_5_3Xr3_3W5jwa-r7wIy8
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzkzNzE5ODIsInN1YiI6MiwidXNlcm5hbWUiOiJib2IifQ.5Ro1AS5UYaW7Q62uMFTAItSuOOtDCysyXKTuVQTyhOg

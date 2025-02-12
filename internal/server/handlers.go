@@ -228,7 +228,16 @@ func (s *Server) myUserHandler(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("User transaction IDs", userTransactionIds)
+	transactionHashes := make([]string, len(userTransactionIds))
+	for i, userTransaction := range userTransactionIds {
+		transactionHashes[i] = userTransaction.TransactionHash
+	}
 
-	c.JSON(http.StatusOK, userTransactionIds)
+	transactions, err := s.store.transactionRepo.GetByHashes(c, transactionHashes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, transactions)
 }
