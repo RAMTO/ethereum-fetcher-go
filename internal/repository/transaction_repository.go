@@ -52,38 +52,6 @@ func (r *transactionRepository) GetByHash(ctx context.Context, hash string) (*mo
 	return &tx, nil
 }
 
-// GetByBlockNumber retrieves transactions by block number
-func (r *transactionRepository) GetByBlockNumber(ctx context.Context, blockNumber int) ([]*models.Transaction, error) {
-	var txs []*models.Transaction
-	err := r.DB.WithContext(ctx).Where("block_number = ?", blockNumber).Find(&txs).Error
-	if err != nil {
-		return nil, err
-	}
-	return txs, nil
-}
-
-// GetByAddress retrieves transactions by address (from or to)
-func (r *transactionRepository) GetByAddress(ctx context.Context, address string) ([]*models.Transaction, error) {
-	var txs []*models.Transaction
-	err := r.DB.WithContext(ctx).
-		Where(`"from" = ? OR "to" = ?`, address, address).
-		Find(&txs).Error
-	if err != nil {
-		return nil, err
-	}
-	return txs, nil
-}
-
-// Update updates an existing transaction
-func (r *transactionRepository) Update(ctx context.Context, tx *models.Transaction) error {
-	return r.DB.WithContext(ctx).Save(tx).Error
-}
-
-// Delete removes a transaction by ID
-func (r *transactionRepository) Delete(ctx context.Context, id int) error {
-	return r.DB.WithContext(ctx).Delete(&models.Transaction{}, id).Error
-}
-
 // GetAll retrieves all transactions
 func (r *transactionRepository) GetAll(ctx context.Context) ([]*models.Transaction, error) {
 	var txs []*models.Transaction

@@ -39,8 +39,6 @@ type UserRepository interface {
 	Create(ctx context.Context, user *models.User) error
 	GetByID(ctx context.Context, id int) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
-	Update(ctx context.Context, user *models.User) error
-	Delete(ctx context.Context, id int) error
 }
 
 // TransactionRepository defines the interface for transaction-related operations
@@ -50,8 +48,4 @@ type TransactionRepository interface {
 	GetByID(ctx context.Context, id int) (*models.Transaction, error)
 	GetAll(ctx context.Context) ([]*models.Transaction, error)
 	GetByHash(ctx context.Context, hash string) (*models.Transaction, error)
-	GetByBlockNumber(ctx context.Context, blockNumber int) ([]*models.Transaction, error)
-	GetByAddress(ctx context.Context, address string) ([]*models.Transaction, error)
-	Update(ctx context.Context, tx *models.Transaction) error
-	Delete(ctx context.Context, id int) error
 }

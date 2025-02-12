@@ -51,13 +51,3 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*m
 	}
 	return &user, nil
 }
-
-// Update updates an existing user
-func (r *userRepository) Update(ctx context.Context, user *models.User) error {
-	return r.DB.WithContext(ctx).Save(user).Error
-}
-
-// Delete removes a user by ID
-func (r *userRepository) Delete(ctx context.Context, id int) error {
-	return r.DB.WithContext(ctx).Delete(&models.User{}, id).Error
-}
