@@ -122,6 +122,20 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		return
 	}
 
+	if user != nil {
+		// Check for user transaction association
+		existingUserTransaction, _ := s.userTransactionRepo.GetByTransactionHashAndUserId(c, transaction.TransactionHash, user.ID)
+
+		fmt.Println("Existing user transaction", existingUserTransaction)
+
+		if existingUserTransaction == nil {
+			if err := s.userTransactionRepo.Create(c, user.ID, transaction.TransactionHash); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
 	c.IndentedJSON(http.StatusOK, transaction)
 }
 

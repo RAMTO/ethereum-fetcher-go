@@ -16,9 +16,10 @@ import (
 type Server struct {
 	port int
 
-	db              database.Service
-	transactionRepo repository.TransactionRepository
-	userRepo        repository.UserRepository
+	db                  database.Service
+	transactionRepo     repository.TransactionRepository
+	userRepo            repository.UserRepository
+	userTransactionRepo repository.UserTransactionRepository
 }
 
 func NewServer() *http.Server {
@@ -26,10 +27,11 @@ func NewServer() *http.Server {
 	db := database.New()
 
 	NewServer := &Server{
-		port:            port,
-		db:              db,
-		transactionRepo: repository.NewTransactionRepository(db.DB()),
-		userRepo:        repository.NewUserRepository(db.DB()),
+		port:                port,
+		db:                  db,
+		transactionRepo:     repository.NewTransactionRepository(db.DB()),
+		userRepo:            repository.NewUserRepository(db.DB()),
+		userTransactionRepo: repository.NewUserTransactionRepository(db.DB()),
 	}
 
 	// Declare Server config

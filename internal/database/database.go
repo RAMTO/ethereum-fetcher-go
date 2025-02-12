@@ -87,6 +87,7 @@ func New() Service {
 	err = db.AutoMigrate(
 		&models.User{},
 		&models.Transaction{},
+		&models.UserTransaction{},
 	)
 	if err != nil {
 		log.Printf("Failed to auto-migrate database: %v", err)
