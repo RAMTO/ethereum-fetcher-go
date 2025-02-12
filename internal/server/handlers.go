@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/hex"
 	"ethereum-fetcher-go/internal/models"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -92,13 +94,27 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		log.Fatal(err)
 	}
 
+	receipt, err := client.TransactionReceipt(c, txHash)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	from, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	transaction := &models.Transaction{
 		TransactionHash:   tx.Hash().Hex(),
-		TransactionStatus: 1,
+		TransactionStatus: int(receipt.Status),
 		To:                tx.To().Hex(),
+		From:              from.Hex(),
 		ContractAddress:   tx.To().Hex(),
-		LogsCount:         0,
+		LogsCount:         len(receipt.Logs),
 		Value:             int(tx.Value().Int64()),
+		BlockHash:         receipt.BlockHash.Hex(),
+		BlockNumber:       int(receipt.BlockNumber.Int64()),
+		Input:             hex.EncodeToString(tx.Data()),
 	}
 
 	if err := s.transactionRepo.Create(c, transaction); err != nil {
