@@ -18,6 +18,7 @@ type Server struct {
 
 	db              database.Service
 	transactionRepo repository.TransactionRepository
+	userRepo        repository.UserRepository
 }
 
 func NewServer() *http.Server {
@@ -28,6 +29,7 @@ func NewServer() *http.Server {
 		port:            port,
 		db:              db,
 		transactionRepo: repository.NewTransactionRepository(db.DB()),
+		userRepo:        repository.NewUserRepository(db.DB()),
 	}
 
 	// Declare Server config

@@ -25,6 +25,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.GET("/health", s.healthHandler)
 	r.GET("/lime/all", s.getAllTransactionsHandler)
 	r.GET("/lime/eth", s.fetchTransactionsHandler)
+	r.POST("/lime/register", s.registerUserHandler)
+	r.POST("/lime/authenticate", s.authenticateUserHandler)
 
 	return r
 }
@@ -89,4 +91,48 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusOK, transaction)
+}
+
+func (s *Server) registerUserHandler(c *gin.Context) {
+	var user models.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check if user already exists
+	existingUser, _ := s.userRepo.GetByUsername(c, user.Username)
+	if existingUser != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User already exists"})
+		return
+	}
+
+	// Create user
+	if err := s.userRepo.Create(c, &user); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
+}
+
+func (s *Server) authenticateUserHandler(c *gin.Context) {
+	var user models.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	existingUser, _ := s.userRepo.GetByUsername(c, user.Username)
+	if existingUser == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		return
+	}
+
+	if existingUser.Password != user.Password {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User authenticated successfully"})
 }

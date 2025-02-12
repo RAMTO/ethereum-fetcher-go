@@ -6,3 +6,21 @@ GET http://localhost:8080/lime/all
 
 ### GET transaction by hash
 GET http://localhost:8080/lime/eth?transactionHashes=0x17e6a17536ceb608c647518aa868cb34c06c119ea04c9307909c2c0d1a7051e8
+
+### POST register user
+POST http://localhost:8080/lime/register
+Content-Type: application/json
+
+{
+    "username": "carol",
+    "password": "carol"
+}
+
+### POST authenticate user
+POST http://localhost:8080/lime/authenticate
+Content-Type: application/json
+
+{
+    "username": "alice",
+    "password": "alice"
+}
