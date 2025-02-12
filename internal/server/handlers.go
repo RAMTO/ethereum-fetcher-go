@@ -99,7 +99,7 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	from, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
+	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 	if err != nil {
 		log.Fatal(err)
 	}
