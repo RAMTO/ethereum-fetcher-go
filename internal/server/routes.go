@@ -2,6 +2,7 @@ package server
 
 import (
 	"ethereum-fetcher-go/internal/models"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -49,6 +50,39 @@ func (s *Server) getAllTransactionsHandler(c *gin.Context) {
 
 func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 	param := c.Query("transactionHashes")
+
+	var user *models.User
+
+	// Get the token from the request
+	tokenString := c.GetHeader("Authorization")
+	if tokenString != "" {
+		// Validate the token
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("JWT_SECRET")), nil
+		})
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			return
+		}
+
+		username := claims["username"].(string)
+
+		foundUser, err := s.userRepo.GetByUsername(c, username)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		user = foundUser
+	}
+
+	fmt.Println(user)
 
 	// Validate transaction hash
 	if param == "" {
