@@ -8,5 +8,5 @@ type UserTransaction struct {
 	ID              int       `json:"id" gorm:"primaryKey"`
 	UserID          int       `json:"user_id" gorm:"foreignKey:UserID"`
 	TransactionHash string    `json:"transaction_hash"`
-	FetchedAt       time.Time `json:"fetched_at" gorm:"not null;default:current_timestamp"`
+	CreatedAt       time.Time `json:"created_at" gorm:"autoCreateTime"`
 }

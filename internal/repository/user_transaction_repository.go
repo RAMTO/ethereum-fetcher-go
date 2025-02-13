@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"errors"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -26,7 +25,6 @@ func (r *userTransactionRepository) Create(ctx context.Context, userID int, tran
 	userTransaction := &models.UserTransaction{
 		UserID:          userID,
 		TransactionHash: transactionHash,
-		FetchedAt:       time.Now(),
 	}
 
 	err := r.DB.WithContext(ctx).Create(userTransaction).Error
