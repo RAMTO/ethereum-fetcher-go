@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/hex"
 	"ethereum-fetcher-go/internal/models"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -80,7 +79,18 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		user = foundUser
 	}
 
-	fmt.Println("user", user)
+	if user != nil {
+		// Check for user transaction association
+		for _, hashToCheck := range transactionHashes {
+			existingUserTransaction, _ := s.store.userTransactionRepo.GetByTransactionHashAndUserId(c, hashToCheck, user.ID)
+
+			if existingUserTransaction == nil {
+				if err := s.store.userTransactionRepo.Create(c, user.ID, hashToCheck); err != nil {
+					continue
+				}
+			}
+		}
+	}
 
 	existingTransactions, _ := s.store.transactionRepo.GetByHashes(c, transactionHashes)
 
@@ -152,18 +162,6 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 
 		newTransactions = append(newTransactions, transaction)
 	}
-
-	// if user != nil {
-	// 	// Check for user transaction association
-	// 	existingUserTransaction, _ := s.store.userTransactionRepo.GetByTransactionHashAndUserId(c, transaction.TransactionHash, user.ID)
-
-	// 	if existingUserTransaction == nil {
-	// 		if err := s.store.userTransactionRepo.Create(c, user.ID, transaction.TransactionHash); err != nil {
-	// 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 			return
-	// 		}
-	// 	}
-	// }
 
 	allTransactions := append(existingTransactions, newTransactions...)
 
