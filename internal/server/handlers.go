@@ -3,15 +3,11 @@ package server
 import (
 	"encoding/hex"
 	"ethereum-fetcher-go/internal/models"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
@@ -102,61 +98,11 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		existingTxMap[tx.TransactionHash] = true
 	}
 
-	ethNodeUrl := os.Getenv("ETH_NODE_URL")
-
-	// Dial the Ethereum node
-	client, err := ethclient.Dial(ethNodeUrl)
+	// Fetch new transactions from the network
+	newTransactions, err := fetchTransactionsFromNetwork(c, transactionHashes, existingTxMap, s)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	var newTransactions []*models.Transaction
-
-	for _, hash := range transactionHashes {
-		// If the transaction already exists, skip it
-		if existingTxMap[hash] {
-			continue
-		}
-
-		txHash := common.HexToHash(hash)
-
-		tx, _, err := client.TransactionByHash(c, txHash)
-		if err != nil {
-			log.Printf("Error fetching transaction %s: %v", hash, err)
-			continue
-		}
-
-		receipt, err := client.TransactionReceipt(c, txHash)
-		if err != nil {
-			log.Printf("Error fetching receipt for %s: %v", hash, err)
-			continue
-		}
-
-		from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
-		if err != nil {
-			log.Printf("Error getting sender for %s: %v", hash, err)
-			continue
-		}
-
-		transaction := &models.Transaction{
-			TransactionHash:   tx.Hash().Hex(),
-			TransactionStatus: int(receipt.Status),
-			To:                tx.To().Hex(),
-			From:              from.Hex(),
-			ContractAddress:   tx.To().Hex(),
-			LogsCount:         len(receipt.Logs),
-			Value:             int(tx.Value().Int64()),
-			BlockHash:         receipt.BlockHash.Hex(),
-			BlockNumber:       int(receipt.BlockNumber.Int64()),
-			Input:             hex.EncodeToString(tx.Data()),
-		}
-
-		if err := s.store.transactionRepo.Create(c, transaction); err != nil {
-			log.Printf("Error saving transaction %s: %v", hash, err)
-			continue
-		}
-
-		newTransactions = append(newTransactions, transaction)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	allTransactions := append(existingTransactions, newTransactions...)
