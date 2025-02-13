@@ -11,44 +11,40 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func validateHashes(hashes []string) error {
+	if len(hashes) == 0 {
+		return fmt.Errorf("transactionHashes parameter is required")
+	}
+
+	for _, hash := range hashes {
+		// Check prefix and length first
+		if !strings.HasPrefix(hash, "0x") || len(hash) != 66 {
+			return fmt.Errorf("invalid transaction hash: %s", hash)
+		}
+
+		// Try to decode the hex part
+		if _, err := hex.DecodeString(hash[2:]); err != nil {
+			return fmt.Errorf("invalid transaction hash: %s", hash)
+		}
+
+		h := common.HexToHash(hash)
+
+		// If the hash is invalid, it will be zero
+		if h == (common.Hash{}) {
+			return fmt.Errorf("invalid transaction hash: %s", hash)
+		}
+	}
+
+	return nil
+}
+
 func ValidateTransactionHashes() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		hashes := c.QueryArray("transactionHashes")
 
-		// Check if empty
-		if len(hashes) == 0 {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": "transactionHashes parameter is required",
-			})
+		if err := validateHashes(hashes); err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
-		}
-
-		for _, hash := range hashes {
-			// Check prefix and length first
-			if !strings.HasPrefix(hash, "0x") || len(hash) != 66 {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("invalid transaction hash: %s", hash),
-				})
-				return
-			}
-
-			// Try to decode the hex part
-			if _, err := hex.DecodeString(hash[2:]); err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("invalid transaction hash: %s", hash),
-				})
-				return
-			}
-
-			h := common.HexToHash(hash)
-
-			// If the hash is invalid, it will be zero
-			if h == (common.Hash{}) {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("invalid transaction hash: %s", hash),
-				})
-				return
-			}
 		}
 
 		// Store validated hashes in context for handler
@@ -87,42 +83,9 @@ func ValidateRlpHex() gin.HandlerFunc {
 			hashes[i] = "0x" + hex.EncodeToString(hash)
 		}
 
-		// fmt.Println("hashes", hashes)
-
-		// Check if empty
-		if len(hashes) == 0 {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": "transactionHashes parameter is required",
-			})
+		if err := validateHashes(hashes); err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
-		}
-
-		for _, hash := range hashes {
-			// Check prefix and length first
-			if !strings.HasPrefix(hash, "0x") || len(hash) != 66 {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("invalid transaction hash: %s", hash),
-				})
-				return
-			}
-
-			// Try to decode the hex part
-			if _, err := hex.DecodeString(hash[2:]); err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("invalid transaction hash: %s", hash),
-				})
-				return
-			}
-
-			h := common.HexToHash(hash)
-
-			// If the hash is invalid, it will be zero
-			if h == (common.Hash{}) {
-				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"error": fmt.Sprintf("invalid transaction hash: %s", hash),
-				})
-				return
-			}
 		}
 
 		// Store validated hashes in context for handler
