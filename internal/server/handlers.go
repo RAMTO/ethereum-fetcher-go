@@ -32,7 +32,15 @@ func (s *Server) getAllTransactionsHandler(c *gin.Context) {
 }
 
 func (s *Server) fetchTransactionsHandler(c *gin.Context) {
-	param := c.Query("transactionHashes")
+	transactionHashes := c.QueryArray("transactionHashes")
+
+	// Validate transaction hashes
+	if len(transactionHashes) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "transactionHashes parameter is required",
+		})
+		return
+	}
 
 	var user *models.User
 
@@ -65,80 +73,94 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		user = foundUser
 	}
 
-	fmt.Println(user)
+	fmt.Println("user", user)
 
-	// Validate transaction hash
-	if param == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "transactionHashes parameter is required",
-		})
+	existingTransactions, _ := s.store.transactionRepo.GetByHashes(c, transactionHashes)
+
+	// If all transactions exist, return them
+	if len(existingTransactions) == len(transactionHashes) {
+		c.IndentedJSON(http.StatusOK, existingTransactions)
 		return
 	}
 
-	existingTransaction, _ := s.store.transactionRepo.GetByHash(c, param)
-
-	if existingTransaction != nil {
-		c.IndentedJSON(http.StatusOK, existingTransaction)
-		return
+	// Create a map of existing transactions for quick lookup
+	existingTxMap := make(map[string]bool)
+	for _, tx := range existingTransactions {
+		existingTxMap[tx.TransactionHash] = true
 	}
 
 	ethNodeUrl := os.Getenv("ETH_NODE_URL")
 
+	// Dial the Ethereum node
 	client, err := ethclient.Dial(ethNodeUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	txHash := common.HexToHash(param)
+	var newTransactions []*models.Transaction
 
-	tx, _, err := client.TransactionByHash(c, txHash)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	receipt, err := client.TransactionReceipt(c, txHash)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	transaction := &models.Transaction{
-		TransactionHash:   tx.Hash().Hex(),
-		TransactionStatus: int(receipt.Status),
-		To:                tx.To().Hex(),
-		From:              from.Hex(),
-		ContractAddress:   tx.To().Hex(),
-		LogsCount:         len(receipt.Logs),
-		Value:             int(tx.Value().Int64()),
-		BlockHash:         receipt.BlockHash.Hex(),
-		BlockNumber:       int(receipt.BlockNumber.Int64()),
-		Input:             hex.EncodeToString(tx.Data()),
-	}
-
-	if err := s.store.transactionRepo.Create(c, transaction); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if user != nil {
-		// Check for user transaction association
-		existingUserTransaction, _ := s.store.userTransactionRepo.GetByTransactionHashAndUserId(c, transaction.TransactionHash, user.ID)
-
-		fmt.Println("Existing user transaction", existingUserTransaction)
-
-		if existingUserTransaction == nil {
-			if err := s.store.userTransactionRepo.Create(c, user.ID, transaction.TransactionHash); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
+	for _, hash := range transactionHashes {
+		// If the transaction already exists, skip it
+		if existingTxMap[hash] {
+			continue
 		}
+
+		txHash := common.HexToHash(hash)
+
+		tx, _, err := client.TransactionByHash(c, txHash)
+		if err != nil {
+			log.Printf("Error fetching transaction %s: %v", hash, err)
+			continue
+		}
+
+		receipt, err := client.TransactionReceipt(c, txHash)
+		if err != nil {
+			log.Printf("Error fetching receipt for %s: %v", hash, err)
+			continue
+		}
+
+		from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
+		if err != nil {
+			log.Printf("Error getting sender for %s: %v", hash, err)
+			continue
+		}
+
+		transaction := &models.Transaction{
+			TransactionHash:   tx.Hash().Hex(),
+			TransactionStatus: int(receipt.Status),
+			To:                tx.To().Hex(),
+			From:              from.Hex(),
+			ContractAddress:   tx.To().Hex(),
+			LogsCount:         len(receipt.Logs),
+			Value:             int(tx.Value().Int64()),
+			BlockHash:         receipt.BlockHash.Hex(),
+			BlockNumber:       int(receipt.BlockNumber.Int64()),
+			Input:             hex.EncodeToString(tx.Data()),
+		}
+
+		if err := s.store.transactionRepo.Create(c, transaction); err != nil {
+			log.Printf("Error saving transaction %s: %v", hash, err)
+			continue
+		}
+
+		newTransactions = append(newTransactions, transaction)
 	}
 
-	c.IndentedJSON(http.StatusOK, transaction)
+	// if user != nil {
+	// 	// Check for user transaction association
+	// 	existingUserTransaction, _ := s.store.userTransactionRepo.GetByTransactionHashAndUserId(c, transaction.TransactionHash, user.ID)
+
+	// 	if existingUserTransaction == nil {
+	// 		if err := s.store.userTransactionRepo.Create(c, user.ID, transaction.TransactionHash); err != nil {
+	// 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 			return
+	// 		}
+	// 	}
+	// }
+
+	allTransactions := append(existingTransactions, newTransactions...)
+
+	c.IndentedJSON(http.StatusOK, allTransactions)
 }
 
 func (s *Server) fetchTransactionsByRlpHexHandler(c *gin.Context) {
