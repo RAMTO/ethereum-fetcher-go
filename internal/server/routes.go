@@ -19,7 +19,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.GET("/health", s.healthHandler)
 	r.GET("/lime/all", s.getAllTransactionsHandler)
-	r.GET("/lime/eth", s.fetchTransactionsHandler)
+	r.GET("/lime/eth", ValidateTransactionHashes(), s.fetchTransactionsHandler)
 	r.GET("/lime/eth/:rlphex", s.fetchTransactionsByRlpHexHandler)
 	r.POST("/lime/register", s.registerUserHandler)
 	r.POST("/lime/authenticate", s.authenticateUserHandler)

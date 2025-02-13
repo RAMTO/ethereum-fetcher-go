@@ -32,12 +32,19 @@ func (s *Server) getAllTransactionsHandler(c *gin.Context) {
 }
 
 func (s *Server) fetchTransactionsHandler(c *gin.Context) {
-	transactionHashes := c.QueryArray("transactionHashes")
+	// Get pre-validated hashes from context
+	hashes, exists := c.Get("validatedHashes")
+	if !exists {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "validated hashes not found in context",
+		})
+		return
+	}
 
-	// Validate transaction hashes
-	if len(transactionHashes) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "transactionHashes parameter is required",
+	transactionHashes, ok := hashes.([]string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "invalid type for validated hashes",
 		})
 		return
 	}
