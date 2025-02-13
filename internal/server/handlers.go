@@ -48,8 +48,6 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 		return
 	}
 
-	var user *models.User
-
 	// Get the token from the request
 	tokenString := c.GetHeader("Authorization")
 	if tokenString != "" {
@@ -76,17 +74,15 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 			return
 		}
 
-		user = foundUser
-	}
+		if foundUser != nil {
+			// Check for user transaction association
+			for _, hashToCheck := range transactionHashes {
+				existingUserTransaction, _ := s.store.userTransactionRepo.GetByTransactionHashAndUserId(c, hashToCheck, foundUser.ID)
 
-	if user != nil {
-		// Check for user transaction association
-		for _, hashToCheck := range transactionHashes {
-			existingUserTransaction, _ := s.store.userTransactionRepo.GetByTransactionHashAndUserId(c, hashToCheck, user.ID)
-
-			if existingUserTransaction == nil {
-				if err := s.store.userTransactionRepo.Create(c, user.ID, hashToCheck); err != nil {
-					continue
+				if existingUserTransaction == nil {
+					if err := s.store.userTransactionRepo.Create(c, foundUser.ID, hashToCheck); err != nil {
+						continue
+					}
 				}
 			}
 		}
