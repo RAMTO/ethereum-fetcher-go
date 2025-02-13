@@ -52,7 +52,8 @@ type TransactionRepository interface {
 }
 
 type UserTransactionRepository interface {
-	Create(ctx context.Context, userID int, transactionHash string) error
+	Repository
+	Create(ctx context.Context, userID int, transactionHash string) (*models.UserTransaction, error)
 	GetByTransactionHashAndUserId(ctx context.Context, transactionHash string, userID int) (*models.UserTransaction, error)
 	GetTransactionsByUserId(ctx context.Context, userID int) ([]*models.UserTransaction, error)
 }

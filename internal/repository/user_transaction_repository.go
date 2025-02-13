@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -10,40 +11,46 @@ import (
 )
 
 type userTransactionRepository struct {
-	db *gorm.DB
+	*BaseRepository
 }
 
 // NewUserTransactionRepository creates a new UserTransactionRepository
 func NewUserTransactionRepository(db *gorm.DB) UserTransactionRepository {
 	return &userTransactionRepository{
-		db: db,
+		BaseRepository: NewBaseRepository(db),
 	}
 }
 
 // Create creates a new user-transaction association
-func (r *userTransactionRepository) Create(ctx context.Context, userID int, transactionHash string) error {
+func (r *userTransactionRepository) Create(ctx context.Context, userID int, transactionHash string) (*models.UserTransaction, error) {
 	userTransaction := &models.UserTransaction{
 		UserID:          userID,
 		TransactionHash: transactionHash,
 		FetchedAt:       time.Now(),
 	}
 
-	return r.db.WithContext(ctx).Create(userTransaction).Error
+	err := r.DB.WithContext(ctx).Create(userTransaction).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return userTransaction, nil
 }
 
 // GetByTransactionHashAndUserId retrieves a user transaction by transaction ID and user ID
 func (r *userTransactionRepository) GetByTransactionHashAndUserId(ctx context.Context, transactionHash string, userID int) (*models.UserTransaction, error) {
 	var userTransaction models.UserTransaction
 
-	result := r.db.WithContext(ctx).
+	err := r.DB.WithContext(ctx).
 		Where("transaction_hash = ? AND user_id = ?", transactionHash, userID).
-		First(&userTransaction)
+		First(&userTransaction).Error
 
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, result.Error
+		return nil, err
 	}
 
 	return &userTransaction, nil
@@ -52,5 +59,14 @@ func (r *userTransactionRepository) GetByTransactionHashAndUserId(ctx context.Co
 func (r *userTransactionRepository) GetTransactionsByUserId(ctx context.Context, userID int) ([]*models.UserTransaction, error) {
 	var userTransactions []*models.UserTransaction
 
-	return userTransactions, r.db.WithContext(ctx).Where("user_id = ?", userID).Find(&userTransactions).Error
+	err := r.DB.WithContext(ctx).Where("user_id = ?", userID).Find(&userTransactions).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return userTransactions, nil
 }
