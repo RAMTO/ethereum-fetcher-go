@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -34,17 +33,11 @@ func (r *userTransactionRepository) Create(ctx context.Context, userID int, tran
 
 // GetByTransactionHashAndUserId retrieves a user transaction by transaction ID and user ID
 func (r *userTransactionRepository) GetByTransactionHashAndUserId(ctx context.Context, transactionHash string, userID int) (*models.UserTransaction, error) {
-	fmt.Println("transactionHash", transactionHash)
 	var userTransaction models.UserTransaction
-
-	fmt.Println("transactionHash", transactionHash)
-	fmt.Println("userID", userID)
 
 	result := r.db.WithContext(ctx).
 		Where("transaction_hash = ? AND user_id = ?", transactionHash, userID).
 		First(&userTransaction)
-
-	fmt.Println("result", result)
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
