@@ -59,9 +59,9 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 			return
 		}
 
-		username := claims["username"].(string)
+		userId := int(claims["sub"].(float64))
 
-		foundUser, err := s.store.userRepo.GetByUsername(c, username)
+		foundUser, err := s.store.userRepo.GetByID(c, userId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
