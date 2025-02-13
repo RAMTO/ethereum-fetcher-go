@@ -124,7 +124,7 @@ func (s *Server) registerUserHandler(c *gin.Context) {
 	}
 
 	// Create user
-	if err := s.store.userRepo.Create(c, &user); err != nil {
+	if _, err := s.store.userRepo.Create(c, &user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

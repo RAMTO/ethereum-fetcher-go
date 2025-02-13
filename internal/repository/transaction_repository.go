@@ -22,8 +22,12 @@ func NewTransactionRepository(db *gorm.DB) TransactionRepository {
 }
 
 // Create creates a new transaction
-func (r *transactionRepository) Create(ctx context.Context, tx *models.Transaction) error {
-	return r.DB.WithContext(ctx).Create(tx).Error
+func (r *transactionRepository) Create(ctx context.Context, tx *models.Transaction) (*models.Transaction, error) {
+	err := r.DB.WithContext(ctx).Create(tx).Error
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
 
 // GetByID retrieves a transaction by ID

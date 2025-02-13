@@ -92,7 +92,7 @@ func fetchTransactionsFromNetwork(c *gin.Context, transactionHashes []string, ex
 			Input:             hex.EncodeToString(tx.Data()),
 		}
 
-		if err := s.store.transactionRepo.Create(c, transaction); err != nil {
+		if _, err := s.store.transactionRepo.Create(c, transaction); err != nil {
 			log.Printf("Error saving transaction %s: %v", hash, err)
 			continue
 		}

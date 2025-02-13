@@ -36,7 +36,7 @@ func (r *BaseRepository) Close() error {
 // UserRepository defines the interface for user-related operations
 type UserRepository interface {
 	Repository
-	Create(ctx context.Context, user *models.User) error
+	Create(ctx context.Context, user *models.User) (*models.User, error)
 	GetByID(ctx context.Context, id int) (*models.User, error)
 	GetByUsername(ctx context.Context, username string) (*models.User, error)
 }
@@ -44,7 +44,7 @@ type UserRepository interface {
 // TransactionRepository defines the interface for transaction-related operations
 type TransactionRepository interface {
 	Repository
-	Create(ctx context.Context, tx *models.Transaction) error
+	Create(ctx context.Context, tx *models.Transaction) (*models.Transaction, error)
 	GetByID(ctx context.Context, id int) (*models.Transaction, error)
 	GetAll(ctx context.Context) ([]*models.Transaction, error)
 	GetByHash(ctx context.Context, hash string) (*models.Transaction, error)

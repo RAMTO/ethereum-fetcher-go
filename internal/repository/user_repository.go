@@ -21,9 +21,12 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	}
 }
 
-// Create creates a new user
-func (r *userRepository) Create(ctx context.Context, user *models.User) error {
-	return r.DB.WithContext(ctx).Create(user).Error
+// Create creates a new user and returns the created user with generated fields
+func (r *userRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
+	if err := r.DB.WithContext(ctx).Create(user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 // GetByID retrieves a user by ID
