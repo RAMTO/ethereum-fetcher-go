@@ -73,7 +73,9 @@ func (s *Server) fetchTransactionsHandler(c *gin.Context) {
 				existingUserTransaction, _ := s.store.userTransactionRepo.GetByTransactionHashAndUserId(c, hashToCheck, foundUser.ID)
 
 				if existingUserTransaction == nil {
-					if err := s.store.userTransactionRepo.Create(c, foundUser.ID, hashToCheck); err != nil {
+					_, err := s.store.userTransactionRepo.Create(c, foundUser.ID, hashToCheck)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 						continue
 					}
 				}
