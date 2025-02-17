@@ -24,6 +24,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.POST("/lime/register", s.registerUserHandler)
 	r.POST("/lime/authenticate", s.authenticateUserHandler)
 	r.GET("/lime/my", s.myUserHandler)
+	r.POST("/lime/savePerson", ValidatePersonData(), s.savePersonHandler)
 
 	return r
 }

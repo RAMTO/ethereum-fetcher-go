@@ -34,3 +34,12 @@ Content-Type: application/json
 GET http://localhost:8080/lime/my
 Content-Type: application/json
 Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Mzk0MzUyMzQsInN1YiI6MSwidXNlcm5hbWUiOiJhbGljZSJ9.Uk6UOA8-pNd_F6gQtzDjMY0_4ux53toVofhrk-S6McE
+
+### POST save person
+POST http://localhost:8080/lime/savePerson
+Content-Type: application/json
+
+{
+    "name": "Tests dada",
+    "age": 1242
+}

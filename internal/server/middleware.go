@@ -93,3 +93,30 @@ func ValidateRlpHex() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func ValidatePersonData() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var personData struct {
+			Name string `json:"name" binding:"required"`
+			Age  int    `json:"age" binding:"required"`
+		}
+
+		if err := c.ShouldBindJSON(&personData); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		if personData.Age < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Age cannot be negative"})
+			return
+		}
+
+		if personData.Name == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Name cannot be empty"})
+			return
+		}
+
+		c.Set("personData", personData)
+		c.Next()
+	}
+}
