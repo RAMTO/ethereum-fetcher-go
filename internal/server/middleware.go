@@ -97,8 +97,8 @@ func ValidateRlpHex() gin.HandlerFunc {
 func ValidatePersonData() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var personData struct {
-			Name string `json:"name" binding:"required"`
-			Age  int    `json:"age" binding:"required"`
+			Name string `json:"name"`
+			Age  int    `json:"age"`
 		}
 
 		if err := c.ShouldBindJSON(&personData); err != nil {
