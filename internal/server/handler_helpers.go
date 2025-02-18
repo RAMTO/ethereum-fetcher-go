@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"ethereum-fetcher-go/internal/contracts"
 	"ethereum-fetcher-go/internal/models"
+	"fmt"
 	"log"
 	"math/big"
 	"net/http"
@@ -19,41 +20,64 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Fetch transactions from the network
-func fetchTransactionsFromNetwork(c *gin.Context, transactionHashes []string, existingTransactions map[string]bool, s *Server) ([]*models.Transaction, error) {
-	ethNodeUrl := os.Getenv("ETH_NODE_URL")
+// TxResponse represents a transaction response
+type TxResponse struct {
+	TxHash   string `json:"txHash"`
+	TxStatus string `json:"txStatus"`
+}
 
-	// Dial the Ethereum node
+// getClient creates and returns an Ethereum client
+func getClient() (*ethclient.Client, error) {
+	ethNodeUrl := os.Getenv("ETH_NODE_URL")
+	if ethNodeUrl == "" {
+		return nil, fmt.Errorf("ETH_NODE_URL environment variable not set")
+	}
+
 	client, err := ethclient.Dial(ethNodeUrl)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to Ethereum node: %w", err)
+	}
+
+	return client, nil
+}
+
+// handleError is a helper function to consistently handle errors
+func handleError(c *gin.Context, status int, err error, message string) {
+	log.Printf("Error: %s: %v", message, err)
+	c.JSON(status, gin.H{"error": message})
+}
+
+// fetchTransactionsFromNetwork fetches transaction details from the Ethereum network
+func fetchTransactionsFromNetwork(c *gin.Context, transactionHashes []string, existingTransactions map[string]bool, s *Server) ([]*models.Transaction, error) {
+	client, err := getClient()
+	if err != nil {
+		handleError(c, http.StatusInternalServerError, err, "Failed to initialize Ethereum client")
+		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
 
 	var newTransactions []*models.Transaction
 
 	for _, hash := range transactionHashes {
-		// If the transaction already exists, skip it
 		if existingTransactions[hash] {
 			continue
 		}
 
 		txHash := common.HexToHash(hash)
-
 		tx, _, err := client.TransactionByHash(c, txHash)
 		if err != nil {
-			log.Printf("Error fetching transaction %s: %v", hash, err)
+			log.Printf("Warning: failed to fetch transaction %s: %v", hash, err)
 			continue
 		}
 
 		receipt, err := client.TransactionReceipt(c, txHash)
 		if err != nil {
-			log.Printf("Error fetching receipt for %s: %v", hash, err)
+			log.Printf("Warning: failed to fetch receipt for %s: %v", hash, err)
 			continue
 		}
 
 		from, err := types.Sender(types.LatestSignerForChainID(tx.ChainId()), tx)
 		if err != nil {
-			log.Printf("Error getting sender for %s: %v", hash, err)
+			log.Printf("Warning: failed to get sender for %s: %v", hash, err)
 			continue
 		}
 
@@ -71,7 +95,7 @@ func fetchTransactionsFromNetwork(c *gin.Context, transactionHashes []string, ex
 		}
 
 		if _, err := s.store.transactionRepo.Create(c, transaction); err != nil {
-			log.Printf("Error saving transaction %s: %v", hash, err)
+			log.Printf("Warning: failed to save transaction %s: %v", hash, err)
 			continue
 		}
 
@@ -81,97 +105,85 @@ func fetchTransactionsFromNetwork(c *gin.Context, transactionHashes []string, ex
 	return newTransactions, nil
 }
 
+// savePersonToContract saves person information to the smart contract and returns transaction details
 func savePersonToContract(c *gin.Context, personData struct {
 	Name string `json:"name"`
 	Age  int    `json:"age"`
-}) (txResponse struct {
-	TxHash   string `json:"txHash"`
-	TxStatus string `json:"txStatus"`
-}, err error) {
-	// Create client
-	ethNodeUrl := os.Getenv("ETH_NODE_URL")
-
-	// Dial the Ethereum node
-	client, err := ethclient.Dial(ethNodeUrl)
+}) (*TxResponse, error) {
+	client, err := getClient()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Client not found"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Failed to initialize Ethereum client")
+		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
 
-	// Get contract instance
 	address := common.HexToAddress(os.Getenv("CONTRACT_ADDRESS"))
+	if address == common.HexToAddress("0x0") {
+		handleError(c, http.StatusInternalServerError, fmt.Errorf("invalid contract address"), "Invalid contract address")
+		return nil, fmt.Errorf("invalid contract address")
+	}
+
 	instance, err := contracts.NewContracts(address, client)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Contract not found"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Failed to initialize contract")
+		return nil, fmt.Errorf("failed to initialize contract: %w", err)
 	}
 
-	// Get private key
 	privateKey, err := crypto.HexToECDSA(os.Getenv("PRIVATE_KEY"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Private key not found"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Invalid private key")
+		return nil, fmt.Errorf("invalid private key: %w", err)
 	}
 
-	// Get public key
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Casting public key to ECDSA"})
-		return
+		handleError(c, http.StatusInternalServerError, fmt.Errorf("invalid public key"), "Failed to process public key")
+		return nil, fmt.Errorf("failed to process public key")
 	}
 
 	fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
-
 	nonce, err := client.PendingNonceAt(context.Background(), fromAddress)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get nonce"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Failed to get nonce")
+		return nil, fmt.Errorf("failed to get nonce: %w", err)
 	}
 
 	gasPrice, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get gas price"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Failed to get gas price")
+		return nil, fmt.Errorf("failed to get gas price: %w", err)
 	}
 
-	// Increase gas price by 30% to speed up transaction
 	increasedGasPrice := new(big.Int).Mul(gasPrice, big.NewInt(130))
 	increasedGasPrice = increasedGasPrice.Div(increasedGasPrice, big.NewInt(100))
 
-	// Get chain ID first
 	chainID, err := client.ChainID(context.Background())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get chain ID"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Failed to get chain ID")
+		return nil, fmt.Errorf("failed to get chain ID: %w", err)
 	}
 
-	// Create auth with chain ID
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chainID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create auth"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Failed to create transaction authenticator")
+		return nil, fmt.Errorf("failed to create transaction authenticator: %w", err)
 	}
 
-	// Set the transaction parameters
 	auth.Nonce = big.NewInt(int64(nonce))
 	auth.Value = big.NewInt(0)
 	auth.GasLimit = uint64(500000)
 	auth.GasPrice = increasedGasPrice
 
-	personName := personData.Name
-	personAge := big.NewInt(int64(personData.Age))
-
-	txHash, err := instance.SetPersonInfo(auth, personName, personAge)
+	txHash, err := instance.SetPersonInfo(auth, personData.Name, big.NewInt(int64(personData.Age)))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed call to set person info"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Failed to set person information")
+		return nil, fmt.Errorf("failed to set person information: %w", err)
 	}
 
 	receipt, err := bind.WaitMined(context.Background(), client, txHash)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to wait for transaction to be mined"})
-		return
+		handleError(c, http.StatusInternalServerError, err, "Failed to confirm transaction")
+		return nil, fmt.Errorf("failed to confirm transaction: %w", err)
 	}
 
 	txStatus := "success"
@@ -179,13 +191,8 @@ func savePersonToContract(c *gin.Context, personData struct {
 		txStatus = "failed"
 	}
 
-	txResponse = struct {
-		TxHash   string `json:"txHash"`
-		TxStatus string `json:"txStatus"`
-	}{
+	return &TxResponse{
 		TxHash:   txHash.Hash().Hex(),
 		TxStatus: txStatus,
-	}
-
-	return txResponse, nil
+	}, nil
 }
